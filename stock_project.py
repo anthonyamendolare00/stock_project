@@ -7,7 +7,10 @@ Original file is located at
     https://colab.research.google.com/drive/1mCV97IXPt5stSCpkvkdAsYC37AKRXAw2
 """
 
-# Description: This program creates interactive candlesticks from the CSV file that is uploaded
+# Description: This program creates interactive candlesticks from the CSV file that is uploaded (TSLA.csv)
+# Added 3 moving averages strategy 
+# Added Bollinger bands strategy 
+# Added On Balance Volume strategy 
 import plotly.graph_objects as go # plotting library 
 # Graph Objects - interactive charts 
 import pandas as pd # pandas - data analysis library 
@@ -40,8 +43,8 @@ candlesticks.show() # show the figure
 
 # Description: Use 3 exponential moving averages (EMA) of various lengths. Generate Buy and Sell signals using these 3 EMAs.
 # exponential weighted mean 
-fast = tesla.Close.ewm(span=5,adjust=False).mean() 
-medium = tesla.Close.ewm(span=21,adjust=False).mean()
+fast = tesla.Close.ewm(span=5,adjust=False).mean() # span = span over time (days) 
+medium = tesla.Close.ewm(span=21,adjust=False).mean() # adjust = accounts for imbalance 
 slow = tesla.Close.ewm(span=63,adjust=False).mean()
 
 # adds the three EMAs into the data frame of tesla 
@@ -52,44 +55,166 @@ tesla['Slow/Long'] = slow
 def three_moving_averages(data): # buying and selling function 
   buy_list = [] # empty
   sell_list = [] # empty 
-  flag_long = False # set False 
+  flag_long = False # set False, flags tell you which portion of the strategy you are in 
   flag_short = False # set False 
   for i in range(0,len(data)): # for the range of data from start to finish 
     if data['Medium'][i] < data['Slow/Long'][i] and data['Fast/Short'][i] < data['Medium'][i] and flag_long==False and flag_short==False: 
+      # flags confirm the buy or sell 
       # if the Medium EMA is less than the Long EMA and Short EMA is less than Medium EMA and both flags are False then:
       buy_list.append(data['Close'][i]) # add to Buy signal 
       sell_list.append(np.nan) # nothing added 
-      flag_short=True # flag short is True 
+      flag_short=True # to let know you went into this if statement 
     elif flag_short==True and data['Fast/Short'][i] > data['Medium'][i]:
       # if the flag short is True and the Short EMA is greater than Medium EMA then:
       sell_list.append(data['Close'][i]) # add to the Sell signal 
       buy_list.append(np.nan) # nothing added 
-      flag_short=False # flag short is False 
+      flag_short=False 
     elif data['Medium'][i] > data['Slow/Long'][i] and data['Fast/Short'][i] > data['Medium'][i] and flag_long==False and flag_short==False:
       # if Medium EMA is greater than Long EMA and Short EMA is greater than Medium EMA and flags are both False 
       buy_list.append(data['Close'][i]) # add to the Buy signal 
       sell_list.append(np.nan) # nothing added 
-      flag_long=True # flag long is true 
+      flag_long=True 
     elif flag_long==True and data['Fast/Short'][i] < data['Medium'][i]: # if flag long is True and Short EMA is less than Medium EMA then:
       sell_list.append(data['Close'][i]) # add to the sell signal 
       buy_list.append(np.nan) # nothing added 
-      flag_long=False # flag long is false 
+      flag_long=False 
     else: 
-      buy_list.append(np.nan) # nothing added 
-      sell_list.append(np.nan) # nothing added 
+      buy_list.append(np.nan) # no number added 
+      sell_list.append(np.nan) # no number added 
   return (buy_list, sell_list) # return the signals
 
-tesla['Buy'] = three_moving_averages(tesla)[0] # adds Buy into the dataframe 
-tesla['Sell'] = three_moving_averages(tesla)[1] # adds Sell into the dataframe
+tesla['Buy MA'] = three_moving_averages(tesla)[0] # adds Buy into the dataframe 
+tesla['Sell MA'] = three_moving_averages(tesla)[1] # adds Sell into the dataframe
 
 plt.figure(figsize=(20,7)) # plots figure size 
-plt.title('3 Moving Averages-Trading Strategy Chart of Tesla Stock (TSLA)', fontsize=20) # plots title 
+plt.title('3 Moving Averages Strategy Chart of Tesla Stock (TSLA)', fontsize=20) # plots title 
 plt.plot(tesla['Close'],label='Close Price ($)',color='blue',alpha=0.35) # plots Closing Price 
 plt.plot(fast, label='Short EMA', color='red',alpha=0.35) # plots short EMA
 plt.plot(medium, label='Medium EMA',color='orange',alpha=0.35) # plots Medium EMA
 plt.plot(slow, label='Long EMA', color='green',alpha=0.35) # plots Long EMA 
-plt.scatter(tesla.index, tesla['Buy'], color='green', marker='^', alpha=1) # plots Buy signals 
-plt.scatter(tesla.index, tesla['Sell'], color='red', marker='v', alpha=1) # plots Sell signals 
+plt.scatter(tesla.index, tesla['Buy MA'], color='green', marker='^', alpha=1) # plots Buy signals 
+plt.scatter(tesla.index, tesla['Sell MA'], color='red', marker='v', alpha=1) # plots Sell signals 
 plt.xlabel('Date',fontsize=20) # plots x label (horizontal)
 plt.ylabel('Close Price ($)',fontsize=18) # plots y label (vertical)
+plt.legend() # show legend 
 plt.show() # shows graph
+
+# period = 20 day
+tesla['SMA'] = tesla['Close'].rolling(window=20).mean() # simple moving average 
+tesla['STD'] = tesla['Close'].rolling(window=20).std() # standard deviation
+tesla['Upper'] = tesla['SMA'] + (tesla['STD'] * 2) # upper bollinger band 
+tesla['Lower'] = tesla['SMA'] - (tesla['STD'] * 2) # lower bollinger band
+
+column_list = ['Close', 'SMA', 'Upper', 'Lower'] # use for plotting data 
+tesla[column_list].plot(figsize=(20,7)) # plots the data, figure size 
+plt.title('Bollinger Band Strategy for Tesla (TSLA)') # title 
+plt.ylabel('Price ($)') # y label (vertical)
+plt.show() # shows graph
+
+figure = plt.figure(figsize=(20,7)) # plots figure 
+ax = figure.add_subplot(1,1,1) # subplots 
+x_axis = tesla.index # x axis (horizontal)
+ax.fill_between(x_axis, tesla['Upper'], tesla['Lower'], color='grey') # inbetween the upper and lower bollinger band the area is shaded in 
+ax.plot(x_axis, tesla['Close'], color='gold', lw=3, label='Close Price') # plot Close Price line 
+ax.plot(x_axis, tesla['SMA'], color='blue', lw=3, label='Simple Moving Average') # plot SMA line 
+ax.set_title('Bollinger Strategy for Tesla (TSLA)') # title
+ax.set_xlabel('Date') # x label (horizontal)
+ax.set_ylabel('Price ($)') # y label (vertical)
+plt.xticks(rotation=45) # 
+ax.legend() # plots legend 
+plt.show() # shows graph
+
+new_tesla = tesla[20-1:] #
+new_tesla # new tesla data frame 
+# adjustment for the 20 day period
+
+def bollinger_bands(data): # function for buy and sell signals for bollinger bands strategy 
+  buy_signal = [] # empty buy signal list 
+  sell_signal = [] # empty sell signal list 
+  for i in range(len(data['Close'])): # for the length of the Close Price data 
+    if data['Close'][i] > data['Upper'][i]: # if the Close Price is greater than the Upper Bollinger Band at a certain point 
+      buy_signal.append(np.nan) # no number is added 
+      sell_signal.append(data['Close'][i]) # add a Sell signal
+    elif data['Close'][i] < data['Lower'][i]: # if the Close Price is less than the Lower Bollinger Band at a certain point 
+      buy_signal.append(data['Close'][i]) # add a Buy signal 
+      sell_signal.append(np.nan) # no number is added 
+    else: # if both of those if statements are false 
+      buy_signal.append(np.nan) # no number is added 
+      sell_signal.append(np.nan) # no number is added 
+
+  return(buy_signal, sell_signal) # return the buy and sell signals
+
+new_tesla['Buy BB'] = bollinger_bands(new_tesla)[0] # add the Buy signals to the new data frame 
+new_tesla['Sell BB'] = bollinger_bands(new_tesla)[1] # add the Sell signals to the new data frame 
+new_tesla # print the new dataframe
+
+figure = plt.figure(figsize=(20,7)) # plot figure size 
+ax = figure.add_subplot(1,1,1) # subplots 
+x_axis = new_tesla.index # x axis 
+ax.fill_between(x_axis, new_tesla['Upper'], new_tesla['Lower'], color='grey') # inbetween the upper and lower bollinger band the area is shaded in 
+ax.plot(x_axis, new_tesla['Close'], color='gold', lw=3, label='Close Price', alpha=0.5) # plot Close Price line 
+ax.plot(x_axis, new_tesla['SMA'], color='blue', lw=3, label='Simple Moving Average', alpha=0.5) # plot SMA line 
+ax.scatter(x_axis, new_tesla['Buy BB'], color='green', lw=3, label='Buy', marker='^', alpha=1) # plot Buy signals 
+ax.scatter(x_axis, new_tesla['Sell BB'], color='red', lw=3, label='Sell', marker='v', alpha=1) # plot Sell signals 
+ax.set_title('Bollinger Bands Strategy for Tesla (TSLA)') # title 
+ax.set_xlabel('Date') # x title (horizontal)
+ax.set_ylabel('Price ($)') # y title (vertical)
+plt.xticks(rotation=45)
+ax.legend() # plot legend 
+plt.show() # show graph
+
+OBV = [] # on balance volume empty list 
+OBV.append(0) # append to 0 
+for i in range(1, len(new_tesla.Close)): # for the length of the Close Price of the tesla data 
+  if new_tesla.Close[i] > new_tesla.Close[i-1]: # if the Close Price is greater than the previous Close Price
+    OBV.append(OBV[-1] + new_tesla.Volume[i]) # append the previous OBV and volume at certain position 
+  elif new_tesla.Close[i] < new_tesla.Close[i-1]: # if the Close Price is less than the previous Close Price 
+    OBV.append(OBV[-1] - new_tesla.Volume[i]) # append the previous OBV minus the volume at certain position 
+  else: # if both if statements are False 
+    OBV.append(OBV[-1]) # append the previous OBV
+
+new_tesla['OBV'] = OBV  # add the OBV to the dataframe 
+new_tesla['OBV-EMA'] = new_tesla['OBV'].ewm(span=20).mean() # add the OBV EMA to the dataframe 
+new_tesla # show the new dataframe
+
+plt.figure(figsize=(20,7)) # plot the figure size 
+plt.plot(new_tesla['OBV'], label='OBV', color='orange') # plot the OBV line 
+plt.plot(new_tesla['OBV-EMA'], label='OBV-EMA', color='purple') # plot the OBV EMA line 
+plt.title('OBV / OBV-EMA Chart') # title 
+plt.xlabel('Date', fontsize=20) # x label (horiztonal)
+plt.ylabel('Price ($)', fontsize=20) # y label (vertical)
+plt.show() # show the graph
+
+def on_balance_volume(signal, col1, col2): # on balance volume function to add buy and sell signals 
+  buy_signal = [] # empty buy signal list 
+  sell_signal = [] # empty sell signal list 
+  flag = -1 # flag for trend upward or downward 
+  for i in range(0, len(signal)): # for the length of the data 
+    if signal[col1][i] > signal[col2][i] and flag != 1: # if the OBV is greater than the OBV EMA 
+      buy_signal.append(signal['Close'][i]) # Buy signal is appended 
+      sell_signal.append(np.nan) # no number is added 
+      flag=1 # change flag to know if statement 
+    elif signal[col1][i] < signal[col2][i] and flag != 0: # if the OBV is less than the OBV EMA , change flag 
+      buy_signal.append(np.nan) # no number is added 
+      sell_signal.append(signal['Close'][i]) # sell is appended 
+      flag = 0 # flag 
+    else: # if both statements are false 
+      buy_signal.append(np.nan) # no number is added 
+      sell_signal.append(np.nan) # no number is added 
+
+  return(buy_signal, sell_signal) # return the buy and sell signals
+
+strategy = on_balance_volume(new_tesla, 'OBV', 'OBV-EMA') # 
+new_tesla['Buy OBV'] = strategy[0] # add Buy signals to the dataframe 
+new_tesla['Sell OBV'] = strategy[1] # add Sell signals to the dataframe 
+new_tesla # show the data
+
+plt.figure(figsize=(20,7)) # plot the figure size 
+plt.plot(new_tesla['Close'], label='Close', alpha=0.35) # plot the Close Line
+plt.scatter(new_tesla.index, new_tesla['Buy OBV'], label='Buy Signal', marker='^', alpha=1, color='green') # plot buy signals
+plt.scatter(new_tesla.index, new_tesla['Sell OBV'], label='Sell Signal', marker='v', alpha=1, color='red') # plot sell signals
+plt.title('Buy and Sell Signals of OBV / OBV-EMA Strategy Chart (TSLA)') # title 
+plt.xlabel('Date', fontsize=20) # x label (horizontal)
+plt.ylabel('Price ($)', fontsize=20) # y label (vertical) 
+plt.legend(loc='upper left') # legend 
+plt.show() # show graph
