@@ -120,7 +120,7 @@ ax.plot(x_axis, tesla['SMA'], color='blue', lw=3, label='Simple Moving Average')
 ax.set_title('Bollinger Strategy for Tesla (TSLA)') # title
 ax.set_xlabel('Date') # x label (horizontal)
 ax.set_ylabel('Price ($)') # y label (vertical)
-plt.xticks(rotation=45) # 
+plt.xticks(rotation=45) # tick locations
 ax.legend() # plots legend 
 plt.show() # shows graph
 
