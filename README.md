@@ -1,2 +1,2 @@
 # stock_project
-Using Google Colab and a Tesla csv file, this program creates interactive candlesticks with Python using the plotly library that is mainly used for plotting data. I then added a 3 moving average strategy, Bollinger Bands strategy, and On Balance Volume strategy using a TSLA.csv file. 
+Using Google Colab and a Tesla csv file, this program creates interactive candlesticks with Python using the plotly library that is mainly used for plotting data. I then added a 3 moving average strategy, Bollinger Bands strategy, and On Balance Volume strategy using a TSLA.csv file. The goal of this project was to use the matplotlib library for data visualization. As well as using a different type of python IDE (Google Colab) and working with stock data. 
